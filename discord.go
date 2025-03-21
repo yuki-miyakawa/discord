@@ -12,9 +12,20 @@ type webhook struct {
 	Content string `json:"content"`
 }
 
-// TODO: 可変長引数に対応し第二引数にwebhookのURLを受け取るようにする
-// TODO: 環境変数か第二引数でwebhookのURLを取得し、取得できない場合はエラーを返すようにする
-func SendMessage(message string) error {
+// URL is optional, if not provided it will use the DISCORD_WEBHOOK environment variable
+// if that is not set it will return an error
+func SendMessage(message string, url ...string) error {
+	var webhookUrl string
+	if len(url) > 0 {
+		webhookUrl = url[0]
+	} else {
+		webhookUrl = os.Getenv("DISCORD_WEBHOOK")
+	}
+
+	if webhookUrl == "" {
+		return fmt.Errorf("DISCORD_WEBHOOK is not set")
+	}
+
 	webhook := webhook{
 		Content: message,
 	}
@@ -24,11 +35,7 @@ func SendMessage(message string) error {
 		return err
 	}
 
-	if os.Getenv("DISCORD_WEBHOOK") == "" {
-		return fmt.Errorf("DISCORD_WEBHOOK is not set")
-	}
-
-	req, err := http.NewRequest("POST", os.Getenv("DISCORD_WEBHOOK"), bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", webhookUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return err
 	}
