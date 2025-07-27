@@ -55,3 +55,47 @@ func SendMessage(message string, url ...string) error {
 
 	return nil
 }
+
+func SendMessageWithMention(message string, url ...string) error {
+	var webhookUrl string
+	if len(url) > 0 {
+		webhookUrl = url[0]
+	} else {
+		webhookUrl = os.Getenv("DISCORD_WEBHOOK")
+	}
+
+	if webhookUrl == "" {
+		return fmt.Errorf("DISCORD_WEBHOOK is not set")
+	}
+
+	message = fmt.Sprintf("@here\n%s", message)
+
+	webhook := webhook{
+		Content: message,
+	}
+
+	jsonData, err := json.Marshal(webhook)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", webhookUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return err
+	}
+
+	return nil
+}
